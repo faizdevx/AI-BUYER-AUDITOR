@@ -28,12 +28,20 @@ def insert_product(
     source_url: str,
     product_json: dict,
     embedding: list[float],
+    image_embedding: list[float] | None = None,
 ) -> int:
     """Insert one product and return its database id."""
 
     embedding_value = "[" + ",".join(
         str(value) for value in embedding
     ) + "]"
+
+    image_embedding_value = None
+
+    if image_embedding is not None:
+        image_embedding_value = "[" + ",".join(
+            str(value) for value in image_embedding
+        ) + "]"
 
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -43,9 +51,10 @@ def insert_product(
                     product_id,
                     source_url,
                     product_json,
-                    embedding
+                    embedding,
+                    image_embedding
                 )
-                VALUES (%s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s::vector, %s::vector)
                 RETURNING id
                 """,
                 (
@@ -53,6 +62,7 @@ def insert_product(
                     source_url,
                     Jsonb(product_json),
                     embedding_value,
+                    image_embedding_value,
                 ),
             )
 
@@ -62,7 +72,6 @@ def insert_product(
                 raise RuntimeError("Insert returned no id.")
 
             return row[0]
-
 
 def get_product(product_row_id: int) -> dict:
     """Return one product by database id."""

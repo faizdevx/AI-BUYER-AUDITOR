@@ -1,6 +1,9 @@
 from green_river.embeddings.graph import embedding_graph
 from green_river.models import EmbeddingRecord
-
+from green_river.embeddings.jina import (
+    embed_image,
+    embed_text,
+)
 
 def embed_product(
     content: str,
@@ -38,3 +41,20 @@ def embed_product(
         )
 
     return record
+
+def embed_product_text(content: str) -> list[float]:
+    """Create a text embedding."""
+
+    return embed_text(content)
+
+
+def embed_product_image(
+    image_bytes: bytes,
+    mime_type: str,
+) -> list[float]:
+    """Create an image embedding."""
+
+    return embed_image(
+        image_bytes=image_bytes,
+        mime_type=mime_type,
+    )

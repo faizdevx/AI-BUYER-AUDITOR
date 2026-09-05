@@ -10,14 +10,19 @@ RAW_DIR = Path("data/raw")
 STRUCTURED_DIR = Path("data/structured")
 
 
+from scrapling.fetchers import StealthyFetcher
+
+
 def fetch_page(url: str):
     return StealthyFetcher.fetch(
         url,
-        google_search=False,
+        google_search=True,
         headless=True,
-        timeout=30_000,
+        timeout=60_000,
         wait=2_000,
         network_idle=False,
+        load_dom=False,
+        disable_resources=True,
     )
 
 

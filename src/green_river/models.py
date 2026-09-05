@@ -403,3 +403,9 @@ class MerchantIngestResponse(BaseModel):
     product: StructuredProduct
     model: str
     dimensions: int
+
+
+class CompetitorFetchRequest(BaseModel):
+    """Request model for competitor discovery."""
+
+    merchant_id: int
