@@ -15,16 +15,12 @@ from green_river.service import (
 )
 
 
-from green_river.competitors.models import (
-    CompetitorFetchResponse,
-)
-from green_river.competitors.search import (
-    build_search_queries,
-    load_merchant_product,
-)
-from green_river.models import (
-    CompetitorFetchRequest,
-)
+from green_river.competitors.graph import discover_competitors
+from green_river.competitors.models import CompetitorFetchResponse
+from green_river.models import CompetitorFetchRequest
+
+
+
 app = FastAPI(
     title="Green River",
     version="0.1.0",
@@ -176,7 +172,6 @@ async def merchant_ingest(
         dimensions=result["embedding"].dimensions,
     )
 
-
 @app.post(
     "/competitors/fetch",
     response_model=CompetitorFetchResponse,
@@ -185,23 +180,11 @@ def competitors_fetch(
     request: CompetitorFetchRequest,
 ):
     try:
-        product = load_merchant_product(
-            request.merchant_id
+        return discover_competitors(
+            request.merchant_id,
         )
-
-        queries = build_search_queries(
-            product
-        )
-
-        return CompetitorFetchResponse(
-            merchant_id=request.merchant_id,
-            queries=queries,
-            candidates=[],
-            competitors=[],
-        )
-
-    except Exception as exc:
+    except ValueError as exc:
         raise HTTPException(
-            status_code=500,
+            status_code=404,
             detail=str(exc),
         ) from exc
