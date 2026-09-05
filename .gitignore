@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.chrome-profile
+data/raw/
+data/structured/
+data/embeddings/
