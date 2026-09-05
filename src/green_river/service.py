@@ -1,14 +1,13 @@
 """Main Green River extraction and embedding service."""
 
 from green_river.db import insert_product
-from green_river.embeddings.service import embed_product
-from green_river.llm.extractor import extract_product
-from green_river.models import StructuredProduct
-from green_river.scraper import scrape_and_process
 from green_river.embeddings.service import (
     embed_product,
     embed_product_image,
 )
+from green_river.llm.extractor import extract_product
+from green_river.models import StructuredProduct
+from green_river.scraper import scrape_and_process
 
 def extract_webpage(url: str):
     """Scrape a webpage and create structured text."""

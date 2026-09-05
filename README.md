@@ -376,3 +376,100 @@ Persistent Storage
 ```
 
 This provides the foundation for later phases involving product retrieval, semantic search, ranking, recommendations, and other downstream systems.
+
+---
+
+# Local Development
+
+Green River runs as two separate applications connected over HTTP:
+
+```text
+React frontend  http://localhost:5173
+    ↓ fetch()
+FastAPI backend http://127.0.0.1:8000
+    ↓
+PostgreSQL/Supabase, Groq, and Jina
+```
+
+## Environment
+
+Create `.env` in the project root with:
+
+```env
+DATABASE_URL=...
+GROQ_API_KEY=...
+JINA_API_KEY=...
+SERPAPI_KEY=...
+```
+
+Run the SQL files in `data/` before using the audit and scoring endpoints:
+
+- `data/audit_trails.sql`
+- `data/score_reports.sql`
+
+## Start the Backend
+
+From the repository root:
+
+```powershell
+uv run uvicorn green_river.app.api:app --reload
+```
+
+The API is available at `http://127.0.0.1:8000`. Swagger is available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Start the Frontend
+
+In a second terminal:
+
+```powershell
+Set-Location frontend
+npm install
+npm run dev
+```
+
+The frontend is available at `http://localhost:5173`.
+
+The browser talks only to FastAPI. It does not access Supabase, Groq, or Jina directly.
+
+## Main API Flow
+
+The frontend uses one merchant ID for the complete workflow:
+
+```text
+POST /merchant/ingest
+    ↓ returns merchant ID
+POST /prompts/generate
+    ↓
+POST /simulation/run
+    ↓
+GET  /audit/{merchant_id}
+    ↓
+POST /score/{merchant_id}
+```
+
+`/merchant/ingest` expects multipart form data with an uploaded image under `image` and the product URL under `url`. The backend accepts images up to 5 MB.
+
+## Validation
+
+```powershell
+Set-Location frontend
+npm run build
+npm run lint
+```
+
+```powershell
+Set-Location ..
+uv run pytest
+```
+
+If ingestion returns HTTP 500, inspect the backend terminal for:
+
+```text
+MERCHANT INGEST FAILED:
+```
+
+The following traceback identifies whether the failure occurred during Scrapling, Groq extraction, Jina embedding, or the database insert.

@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-navy: #0D1038;
+    --crimson: #E63946;
+    --poster-pink: #F5A9B8;
+  }
+  
+  body {
+    background-color: #0D1038;
+    color: #F1F4FA;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #080C24;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1C2263;
+    border-radius: 0px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #E63946;
+  }
+}
+
+/* Condensed Poster Typography Treatment */
+.font-poster-condensed {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Impact', sans-serif;
+  font-stretch: 75%;
+  letter-spacing: -0.055em;
+  line-height: 0.82;
+  transform: scaleY(1.18);
+  transform-origin: top left;
+}
+
+.font-poster-massive {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Arial Black', sans-serif;
+  letter-spacing: -0.065em;
+  line-height: 0.76;
+}
+
+/* Thin brutalist double rules */
+.poster-divider {
+  border-top: 1px solid rgba(245, 169, 184, 0.28);
+  border-bottom: 1px solid rgba(245, 169, 184, 0.28);
+  height: 4px;
+}
+
+.poster-divider-crimson {
+  border-top: 1px solid rgba(230, 57, 70, 0.35);
+  border-bottom: 1px solid rgba(230, 57, 70, 0.35);
+  height: 4px;
+}
+
+/* Technical grid patterns */
+.bg-grid-tech {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+.bg-dots-tech {
+  background-image: radial-gradient(rgba(245, 169, 184, 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Pulse beacon */
+@keyframes tech-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.92); }
+}
+
+.animate-tech-pulse {
+  animation: tech-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Architectural Scanline */
+@keyframes scan-vertical {
+  0% { top: 0%; opacity: 0; }
+  15% { opacity: 0.8; }
+  85% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.animate-scan {
+  animation: scan-vertical 2.5s ease-in-out infinite;
+}
+
+/* Noise overlay */
+.noise-bg {
+  background-image: radial-gradient(circle at 50% 50%, rgba(26, 31, 88, 0.4) 0%, rgba(13, 16, 56, 0.95) 100%);
+}

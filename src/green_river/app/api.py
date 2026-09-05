@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
 from green_river.models import (
@@ -21,9 +22,17 @@ from green_river.models import CompetitorFetchRequest
 
 from fastapi import HTTPException
 
+from green_river.audit.service import compute_audit_trail
+from green_river.db import (
+    get_latest_audit_trail,
+    get_product,
+    save_audit_trail,
+)
+
 from green_river.models import (
     GeneratePromptsRequest,
     SimulationRunRequest,
+    StructuredProduct,
 )
 from green_river.prompt_service import (
     generate_and_store_buyer_prompts,
@@ -31,10 +40,24 @@ from green_river.prompt_service import (
 from green_river.simulation.service import (
     simulate_buyer_decisions,
 )
+from green_river.scoring.service import (
+    compute_score_report,
+)
 
 app = FastAPI(
     title="Green River",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -170,9 +193,14 @@ async def merchant_ingest(
         )
 
     except Exception as exc:
+        import traceback
+
+        print("MERCHANT INGEST FAILED:")
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=500,
-            detail=str(exc),
+            detail=f"{type(exc).__name__}: {exc}",
         ) from exc
 
     return MerchantIngestResponse(
@@ -205,11 +233,37 @@ async def run_simulation(
     request: SimulationRunRequest,
 ):
     try:
+        merchant = get_product(
+            request.merchant_id,
+        )
+
+        if merchant is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Merchant {request.merchant_id} not found.",
+            )
+
+        merchant_product = StructuredProduct.model_validate(
+            merchant["product_json"]
+        )
+
+        merchant_product_id = (
+            merchant_product.product_id
+            or str(request.merchant_id)
+        )
+
         competitor_result = await discover_competitors(
             request.merchant_id,
         )
 
-        candidates = []
+        candidates = [
+            {
+                "product_id": str(merchant_product_id),
+                "product": merchant_product.model_dump(
+                    exclude_none=True,
+                ),
+            }
+        ]
 
         for competitor in competitor_result["competitors"]:
             product = competitor["product"]
@@ -299,4 +353,100 @@ async def generate_prompts(
         raise HTTPException(
             status_code=500,
             detail=str(exc),
+        ) from exc
+
+
+@app.get("/audit/{merchant_id}")
+async def get_audit(
+    merchant_id: int,
+):
+    try:
+        merchant = get_product(
+            merchant_id,
+        )
+
+        if merchant is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Merchant {merchant_id} not found."
+                ),
+            )
+
+        existing = get_latest_audit_trail(
+            merchant_id,
+        )
+
+        if existing:
+            return existing["audit_json"]
+
+        product_json = merchant["product_json"]
+
+        merchant_product_id = product_json.get(
+            "product_id"
+        )
+
+        if not merchant_product_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Merchant product_id is missing.",
+            )
+
+        audit = compute_audit_trail(
+            merchant_id=merchant_id,
+            merchant_product_id=merchant_product_id,
+        )
+
+        audit_dict = audit.model_dump()
+
+        save_audit_trail(
+            merchant_id,
+            audit_dict,
+        )
+
+        return audit_dict
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.post("/score/{merchant_id}")
+async def score_merchant(
+    merchant_id: int,
+):
+    try:
+        report = await compute_score_report(
+            merchant_id
+        )
+
+        return report.model_dump()
+
+    except ValueError as exc:
+        print(f"SCORE VALUE ERROR: {exc!r}")
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        import traceback
+
+        print("SCORE FAILED:")
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"{type(exc).__name__}: {exc}",
         ) from exc

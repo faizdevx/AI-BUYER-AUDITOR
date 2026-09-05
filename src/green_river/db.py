@@ -146,22 +146,6 @@ def similarity_search(
             ]
 
 
-if __name__ == "__main__":
-    url = "YOUR_REAL_PRODUCT_URL"
-
-    print("Starting product pipeline...")
-    print("URL:", url)
-
-    result = extract_and_embed_product(url)
-
-    print("\nPipeline completed.")
-    print("Supabase ID:", result["supabase_id"])
-    print("Product ID:", result["product"].product_id)
-    print("Product:", result["product"].model_dump(mode="json"))
-    print("Embedding model:", result["embedding"].model)
-    print("Embedding dimensions:", result["embedding"].dimensions)
-
-
 def save_buyer_prompts(
     merchant_id: int,
     prompts: list[dict],
@@ -276,6 +260,113 @@ def get_buyer_prompts(
             )
 
             return list(cur.fetchall())
+
+
+def get_buyer_simulations(
+    merchant_id: int,
+) -> list[dict]:
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                select
+                    id,
+                    merchant_id,
+                    prompt_id,
+                    prompt,
+                    llm_provider,
+                    ranked_products,
+                    chosen,
+                    status,
+                    error,
+                    created_at
+                from buyer_simulations
+                where merchant_id = %s
+                order by id
+                """,
+                (merchant_id,),
+            )
+
+            return list(cur.fetchall())
+
+
+def save_audit_trail(
+    merchant_id: int,
+    audit: dict,
+) -> int:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into audit_trails (
+                    merchant_id,
+                    audit_json
+                )
+                values (%s, %s)
+                returning id
+                """,
+                (
+                    merchant_id,
+                    Jsonb(audit),
+                ),
+            )
+
+            audit_id = cur.fetchone()[0]
+
+        conn.commit()
+
+    return audit_id
+
+
+def get_latest_audit_trail(
+    merchant_id: int,
+) -> dict | None:
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                select
+                    id,
+                    merchant_id,
+                    audit_json,
+                    created_at
+                from audit_trails
+                where merchant_id = %s
+                order by created_at desc
+                limit 1
+                """,
+                (merchant_id,),
+            )
+
+            return cur.fetchone()
+
+
+def save_score_report(
+    merchant_id: int,
+    report: dict,
+) -> int:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into score_reports (
+                    merchant_id,
+                    score_json
+                )
+                values (%s, %s)
+                returning id
+                """,
+                (
+                    merchant_id,
+                    Jsonb(report),
+                ),
+            )
+
+            score_id = cur.fetchone()[0]
+
+        conn.commit()
+
+    return score_id
 
 
 
