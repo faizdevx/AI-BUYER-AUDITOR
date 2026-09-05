@@ -171,16 +171,15 @@ async def merchant_ingest(
         model=result["embedding"].model,
         dimensions=result["embedding"].dimensions,
     )
-
 @app.post(
     "/competitors/fetch",
     response_model=CompetitorFetchResponse,
 )
-def competitors_fetch(
+async def competitors_fetch(
     request: CompetitorFetchRequest,
 ):
     try:
-        return discover_competitors(
+        return await discover_competitors(
             request.merchant_id,
         )
     except ValueError as exc:

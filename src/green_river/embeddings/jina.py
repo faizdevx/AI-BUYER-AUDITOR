@@ -134,3 +134,38 @@ def embed_image(
     }
 
     return _request_embedding(payload)
+
+
+def embed_image_url(
+    image_url: str,
+) -> list[float]:
+    """
+    Download an image URL and create a Jina image embedding.
+    """
+
+    if not image_url.strip():
+        raise ValueError(
+            "Image URL cannot be empty."
+        )
+
+    response = httpx.get(
+        image_url,
+        timeout=30.0,
+        follow_redirects=True,
+    )
+
+    response.raise_for_status()
+
+    content_type = (
+        response.headers.get(
+            "content-type",
+            "image/jpeg",
+        )
+        .split(";")[0]
+        .strip()
+    )
+
+    return embed_image(
+        response.content,
+        content_type,
+    )
