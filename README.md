@@ -566,3 +566,42 @@ Persistent Storage
 ```
 
 Phase 1 now provides the foundation for later phases involving query-time vector retrieval, semantic search, ranking, recommendations, and RAG.
+
+
+vision imaging embeddings added 
+
+final architecture till phase 1
+
+```text
+
+                    /merchant/ingest
+                           │
+                    URL + uploaded image
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+             ▼                           ▼
+         Scrapling                  Image bytes
+             │                           │
+             ▼                           ▼
+      webpage content              Jina Omni
+             │                     image embedding
+             ▼                           │
+           Groq                          │
+             │                           │
+             ▼                           │
+     StructuredProduct                   │
+             │                           │
+             ▼                           │
+          Jina Omni                      │
+       text embedding                    │
+             │                           │
+             └─────────────┬─────────────┘
+                           ▼
+                       Supabase
+                           │
+             ┌─────────────┼─────────────┐
+             ▼             ▼             ▼
+        product_json   text vector   image vector
+
+```
