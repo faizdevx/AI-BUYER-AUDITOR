@@ -4,6 +4,7 @@ from green_river.models import (
     EmbedProductResponse,
     ExtractRequest,
     ExtractResponse,
+    MerchantIngestResponse,
     ProductExtractResponse,
 )
 from green_river.service import (
@@ -104,6 +105,33 @@ def embed_product_endpoint(
         url=str(request.url),
         product_id=result["product"].product_id,
         supabase_id=result["supabase_id"],
+        model=result["embedding"].model,
+        dimensions=result["embedding"].dimensions,
+    )
+
+
+@app.post(
+    "/merchant/ingest",
+    response_model=MerchantIngestResponse,
+)
+def merchant_ingest(
+    request: ExtractRequest,
+):
+    try:
+        result = extract_and_embed_product(
+            str(request.url)
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+    return MerchantIngestResponse(
+        id=result["supabase_id"],
+        url=str(request.url),
+        product=result["product"],
         model=result["embedding"].model,
         dimensions=result["embedding"].dimensions,
     )

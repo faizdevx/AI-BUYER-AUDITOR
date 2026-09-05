@@ -394,3 +394,12 @@ def to_embedding_text(
         )
 
     return "\n".join(parts)
+
+
+
+class MerchantIngestResponse(BaseModel):
+    id: int
+    url: str
+    product: StructuredProduct
+    model: str
+    dimensions: int
