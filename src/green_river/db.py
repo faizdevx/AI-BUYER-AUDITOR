@@ -1,7 +1,7 @@
 """PostgreSQL persistence for Green River."""
 
 import os
-
+from psycopg.rows import dict_row
 import psycopg
 from dotenv import load_dotenv
 from psycopg.types.json import Jsonb
@@ -160,3 +160,124 @@ if __name__ == "__main__":
     print("Product:", result["product"].model_dump(mode="json"))
     print("Embedding model:", result["embedding"].model)
     print("Embedding dimensions:", result["embedding"].dimensions)
+
+
+def save_buyer_prompts(
+    merchant_id: int,
+    prompts: list[dict],
+) -> list[dict]:
+    if not prompts:
+        return []
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                delete from buyer_prompts
+                where merchant_id = %s
+                """,
+                (merchant_id,),
+            )
+
+            cur.executemany(
+                """
+                insert into buyer_prompts (
+                    merchant_id,
+                    prompt,
+                    intent_type
+                )
+                values (%s, %s, %s)
+                """,
+                [
+                    (
+                        merchant_id,
+                        item["prompt"],
+                        item["intent_type"],
+                    )
+                    for item in prompts
+                ],
+            )
+
+        conn.commit()
+
+    return prompts
+
+
+def save_buyer_simulation(
+    merchant_id: int,
+    prompt_id: int,
+    decision: dict,
+    *,
+    status: str = "completed",
+    error: str | None = None,
+) -> int:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into buyer_simulations (
+                    merchant_id,
+                    prompt_id,
+                    prompt,
+                    llm_provider,
+                    ranked_products,
+                    chosen,
+                    status,
+                    error
+                )
+                values (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s
+                )
+                returning id
+                """,
+                (
+                    merchant_id,
+                    prompt_id,
+                    decision["prompt"],
+                    decision["llm_provider"],
+                    Jsonb(decision["ranked_products"]),
+                    decision["chosen"],
+                    status,
+                    error,
+                ),
+            )
+
+            simulation_id = cur.fetchone()[0]
+
+        conn.commit()
+
+    return simulation_id
+
+
+def get_buyer_prompts(
+    merchant_id: int,
+) -> list[dict]:
+    with get_connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                select
+                    id,
+                    merchant_id,
+                    prompt,
+                    intent_type
+                from buyer_prompts
+                where merchant_id = %s
+                order by id
+                """,
+                (merchant_id,),
+            )
+
+            return list(cur.fetchall())
+
+
+
+        
+    

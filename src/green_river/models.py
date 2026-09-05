@@ -409,3 +409,11 @@ class CompetitorFetchRequest(BaseModel):
     """Request model for competitor discovery."""
 
     merchant_id: int
+
+
+class GeneratePromptsRequest(BaseModel):
+    merchant_id: int
+
+
+class SimulationRunRequest(BaseModel):
+    merchant_id: int

@@ -19,7 +19,18 @@ from green_river.competitors.graph import discover_competitors
 from green_river.competitors.models import CompetitorFetchResponse
 from green_river.models import CompetitorFetchRequest
 
+from fastapi import HTTPException
 
+from green_river.models import (
+    GeneratePromptsRequest,
+    SimulationRunRequest,
+)
+from green_river.prompt_service import (
+    generate_and_store_buyer_prompts,
+)
+from green_river.simulation.service import (
+    simulate_buyer_decisions,
+)
 
 app = FastAPI(
     title="Green River",
@@ -185,5 +196,107 @@ async def competitors_fetch(
     except ValueError as exc:
         raise HTTPException(
             status_code=404,
+            detail=str(exc),
+        ) from exc
+
+
+@app.post("/simulation/run")
+async def run_simulation(
+    request: SimulationRunRequest,
+):
+    try:
+        competitor_result = await discover_competitors(
+            request.merchant_id,
+        )
+
+        candidates = []
+
+        for competitor in competitor_result["competitors"]:
+            product = competitor["product"]
+
+            product_id = (
+                product.get("product_id")
+                or competitor["source_url"]
+            )
+
+            candidates.append(
+                {
+                    "product_id": str(product_id),
+                    "product": product,
+                }
+            )
+
+        if not candidates:
+            raise ValueError(
+                "No candidate products available for simulation."
+            )
+
+        results = await simulate_buyer_decisions(
+            merchant_id=request.merchant_id,
+            candidates=candidates,
+            provider="groq",
+        )
+
+        completed = sum(
+            result["status"] == "completed"
+            for result in results
+        )
+
+        failed = sum(
+            result["status"] == "failed"
+            for result in results
+        )
+
+        return {
+            "merchant_id": request.merchant_id,
+            "status": (
+                "completed"
+                if failed == 0
+                else "partial"
+            ),
+            "candidate_count": len(candidates),
+            "prompt_count": len(results),
+            "completed": completed,
+            "failed": failed,
+            "results": results,
+        }
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.post("/prompts/generate")
+async def generate_prompts(
+    request: GeneratePromptsRequest,
+):
+    try:
+        prompts = await run_in_threadpool(
+            generate_and_store_buyer_prompts,
+            request.merchant_id,
+        )
+
+        return {
+            "merchant_id": request.merchant_id,
+            "prompts": prompts,
+        }
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
             detail=str(exc),
         ) from exc

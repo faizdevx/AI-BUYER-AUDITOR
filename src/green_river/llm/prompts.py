@@ -20,6 +20,10 @@ Rules:
 12. Extract ratings only when explicitly displayed.
 13. Ignore navigation, footer links, cookie notices, login dialogs,
     buttons, repeated UI text, and unrelated website content.
-14. Preserve source meaning.
-15. Accuracy is more important than completeness.
+14. The color field must always be a single string or null.
+15. Never return an array for color.
+16. If multiple colors are available and there is no single selected
+   color, return null.
+17. Preserve source meaning.
+18. Accuracy is more important than completeness.
 """
